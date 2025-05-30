@@ -531,7 +531,12 @@ group.  Notice that it is better that a buffer belongs to one group.")
   "List of 2-key sequences used by `awesome-tab-ace-jump'")
 
 (defvar awesome-tab-all-the-icons-is-load-p (ignore-errors (require 'all-the-icons))
-  "Return non-nil if `all-the-icons' is load, `require' will have performance problem, so don't call it dynamically.")
+  "Return non-nil if `all-the-icons' is load, `require' will have
+performance problem, so don't call it dynamically.")
+
+(defvar awesome-tab-nerd-icons-is-load-p (ignore-errors (require 'nerd-icons))
+  "Return non-nil if `nerd-icons' is load, `require' will have performance
+problem, so don't call it dynamically.")
 
 ;;; Misc.
 ;;
@@ -1300,7 +1305,8 @@ That is, a string used to represent it on the tab bar."
        (propertize ace-str 'face ace-str-face))
      ;; Tab icon.
      (when (and awesome-tab-display-icon
-                awesome-tab-all-the-icons-is-load-p)
+                (or awesome-tab-all-the-icons-is-load-p
+                    awesome-tab-nerd-icons-is-load-p))
        (propertize " " 'face tab-face))
      (if (and ace-state (eq awesome-tab-ace-str-style 'replace-icon))
          (propertize ace-str 'face ace-str-face)
@@ -1368,7 +1374,7 @@ Tab name will truncate if option `awesome-tab-truncate-string' big than zero."
 Otherwise use `all-the-icons-icon-for-buffer' to fetch icon for buffer."
   (when (and awesome-tab-display-icon
              (or awesome-tab-all-the-icons-is-load-p
-                 (fboundp 'nerd-icons-icon-for-file)))
+                 awesome-tab-nerd-icons-is-load-p))
     (let* ((tab-buffer (car tab))
            (tab-file (buffer-file-name tab-buffer))
            (background (face-background face))
@@ -1403,9 +1409,12 @@ Otherwise use `all-the-icons-icon-for-buffer' to fetch icon for buffer."
                                 :v-adjust awesome-tab-icon-file-v-adjust
                                 :height awesome-tab-icon-height
                                 :face dired-directory-face))
-                      (t (all-the-icons-icon-for-mode major-mode
-                                                      :v-adjust awesome-tab-icon-mode-v-adjust
-                                                      :height awesome-tab-icon-height)))
+                      (t (funcall (if awesome-tab-all-the-icons-is-load-p
+                                      #'all-the-icons-icon-for-mode
+                                    #'nerd-icons-icon-for-mode)
+                                  major-mode
+                                  :v-adjust awesome-tab-icon-mode-v-adjust
+                                  :height awesome-tab-icon-height)))
                 )))))
       (when (and icon
                  ;; `get-text-property' need icon is string type.
