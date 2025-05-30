@@ -810,14 +810,14 @@ current cached copy."
 ;;
 
 (defface awesome-tab-unselected-face
-  '((t))
+  '((t :inherit default))
   "Face used for unselected tabs.
 Do not customize this. It's attribute will be calculated on the
 fly to fit your theme."
   :group 'awesome-tab)
 
 (defface awesome-tab-selected-face
-  '((t))
+  '((t :inherit default))
   "Face used for the selected tab.
 Do not customize this. It's attribute will be calculated on the
 fly to fit your theme."
@@ -1367,7 +1367,8 @@ Tab name will truncate if option `awesome-tab-truncate-string' big than zero."
   "When tab buffer's file is exists, use `all-the-icons-icon-for-file' to fetch file icon.
 Otherwise use `all-the-icons-icon-for-buffer' to fetch icon for buffer."
   (when (and awesome-tab-display-icon
-             awesome-tab-all-the-icons-is-load-p)
+             (or awesome-tab-all-the-icons-is-load-p
+                 (fboundp 'nerd-icons-icon-for-file)))
     (let* ((tab-buffer (car tab))
            (tab-file (buffer-file-name tab-buffer))
            (background (face-background face))
@@ -1377,13 +1378,34 @@ Otherwise use `all-the-icons-icon-for-buffer' to fetch icon for buffer."
              ((and
                tab-file
                (file-exists-p tab-file))
-              (all-the-icons-icon-for-file tab-file :v-adjust awesome-tab-icon-file-v-adjust :height awesome-tab-icon-height))
+              (funcall (if awesome-tab-all-the-icons-is-load-p
+                           #'all-the-icons-icon-for-file
+                         #'nerd-icons-icon-for-file)
+                       tab-file
+                       :v-adjust awesome-tab-icon-file-v-adjust
+                       :height awesome-tab-icon-height))
              ;; Use `all-the-icons-icon-for-mode' for current tab buffer at last.
              (t
               (with-current-buffer tab-buffer
-                (if (derived-mode-p tab-buffer 'eaf-mode)
-                    (all-the-icons-faicon "html5"  :v-adjust awesome-tab-icon-mode-v-adjust :height awesome-tab-icon-height)
-                  (all-the-icons-icon-for-mode major-mode :v-adjust awesome-tab-icon-mode-v-adjust :height awesome-tab-icon-height))
+                (cond ((derived-mode-p tab-buffer 'eaf-mode)
+                       (if awesome-tab-all-the-icons-is-load-p
+                           (all-the-icons-faicon "html5"
+                                                 :v-adjust awesome-tab-icon-mode-v-adjust
+                                                 :height awesome-tab-icon-height)
+                         (nerd-icons-faicon "nf-fa-html5"
+                                            :v-adjust awesome-tab-icon-mode-v-adjust
+                                            :height awesome-tab-icon-height)))
+                      ((derived-mode-p tab-buffer 'dired-mode)
+                       (funcall (if awesome-tab-all-the-icons-is-load-p
+                                    #'all-the-icons-icon-for-dir
+                                  #'nerd-icons-icon-for-dir)
+                                dired-directory
+                                :v-adjust awesome-tab-icon-file-v-adjust
+                                :height awesome-tab-icon-height
+                                :face dired-directory-face))
+                      (t (all-the-icons-icon-for-mode major-mode
+                                                      :v-adjust awesome-tab-icon-mode-v-adjust
+                                                      :height awesome-tab-icon-height)))
                 )))))
       (when (and icon
                  ;; `get-text-property' need icon is string type.
